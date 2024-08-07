@@ -7,10 +7,12 @@ body {
     padding: 10px;
     height: 100vh;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
 }
 
 .welcome {
-    font-size: 20px;
+    font-size: 24px;
     text-align: center;
     color: #FFFFFF;
 }
@@ -19,16 +21,19 @@ body {
     border: 2px solid #FFFFFF;
     padding: 20px;
     max-width: 800px;
-    max-height: 100vh;
+    height: calc(100vh - 20px); /* 상하 패딩 고려 */
     margin: 0 auto;
     box-sizing: border-box;
     overflow: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 h1 {
     font-size: 40px;
     text-align: center;
     color: #FFFFFF;
+    margin-top: 0;
 }
 
 .menu {
@@ -52,8 +57,8 @@ h1 {
 .chat-box {
     border: 1px solid #FFFFFF;
     padding: 10px;
-    height: 300px;
-    overflow-y: scroll;
+    flex-grow: 1;
+    overflow-y: auto;
     background-color: #000080;
     margin-bottom: 20px;
 }
@@ -62,8 +67,9 @@ h1 {
     position: relative;
     border: 1px solid #FFFFFF;
     background-color: #000080;
-    height: 20px;
+    min-height: 30px; /* 고정된 높이 */
     padding: 4px;
+    margin-top: auto; /* 채팅박스와의 간격을 자동으로 조절 */
 }
 
 .textbox {
@@ -73,7 +79,7 @@ h1 {
     caret-color: transparent;
     font-size: 16px;
     width: 100%;
-    height: 100%;
+    height: 100%; /* 부모 요소의 높이에 맞춤 */
     position: absolute;
     top: 0;
     left: 0;
@@ -99,9 +105,10 @@ h1 {
     white-space: pre;
     font-size: 16px;
     position: absolute;
-    top: 4px;
+    top: 50%;
     left: 4px;
-    line-height: 20px;
+    transform: translateY(-50%);
+    line-height: 1;
     font-family: '맑은 고딕', sans-serif;
     font-weight: bold;
 }
@@ -113,8 +120,9 @@ h1 {
     background-color: #ffff00;
     position: absolute;
     visibility: hidden;
-    top: 4px;
+    top: 50%;
     left: 4px;
+    transform: translateY(-50%);
     opacity: 0.8;
 }
 
@@ -142,18 +150,40 @@ h1 {
 }
 
 @media (max-width: 600px) {
+    body {
+        padding: 5px;
+    }
+
     .container {
         width: 100%;
         padding: 10px;
         border: none;
+        height: calc(100vh - 10px); /* 상하 패딩 고려 */
+    }
+
+    h1 {
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+
+    .menu {
+        margin-bottom: 10px;
     }
 
     .menu li {
         margin-bottom: 5px;
+        padding-right: 15px;
     }
 
     .chat-box {
-        height: calc(115vh - 350px);
         margin-bottom: 10px;
+    }
+
+    .input-container {
+        min-height: 30px; /* 모바일에서 약간 작게 조정 */
+    }
+
+    .textbox, #text-display {
+        font-size: 14px; /* 모바일에서 폰트 크기 조정 */
     }
 }
