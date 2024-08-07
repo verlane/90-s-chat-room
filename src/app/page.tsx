@@ -153,7 +153,7 @@ export default function Home() {
 
     return (
         <div className="container">
-            <h1>나우누리에 오신 것을 환영합니다</h1>
+            <div className="welcome">나우누리에 오신 것을 환영합니다</div>
             <ul className="menu">
                 <li>1. 공지사항</li>
                 <li>2. 자유게시판</li>
