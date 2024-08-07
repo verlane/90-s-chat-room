@@ -1,15 +1,15 @@
 "use client";
 
-import {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
 export default function Home() {
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState<Array<{ content: string; id: number }>>([]);
     const [input, setInput] = useState('');
-    const messagesEndRef = useRef(null);
-    const inputRef = useRef(null);
-    const messageQueue = useRef([]);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const messageQueue = useRef<Array<{ content: string; id: number }>>([]);
     const isSending = useRef(false);
     const [isFocused, setIsFocused] = useState(false);
     const [username, setUsername] = useState('');
@@ -43,47 +43,54 @@ export default function Home() {
         "소방차 119", "영심이", "H.O.T.티", "젝키스틱", "핑클레인저", "S.E.S.TERS", "보아짱", "DSF", "YB밴드", "신화창조", "클릭-B", "NRG엔젤", "GOD주니어", "유앤미", "솔메이트", "강타닷컴", "문희준닷컴", "안젤리안", "박정민팬클럽", "터보엔진", "코요태 친구들", "UP", "이정현 팬클럽", "신승훈 팬클럽", "김건모 팬클럽", "이상우 팬클럽", "조성모 팬클럽", "김민종 팬클럽", "김범수 팬클럽", "신화팬클럽", "이효리 팬클럽",
     ];
 
-
     useEffect(() => {
+        let storedUsername = Cookies.get('username');
+        if (!storedUsername) {
+            const randomIndex = Math.floor(Math.random() * pcCommunicationNicknames.length);
+            storedUsername = pcCommunicationNicknames[randomIndex];
+            Cookies.set('username', storedUsername, {expires: 1});
+        }
+        setUsername(storedUsername);
+
         fetchMessages();
         const fetchInterval = setInterval(fetchMessages, 3000);
         const sendInterval = setInterval(processQueue, 1000);
 
+        return () => {
+            clearInterval(fetchInterval);
+            clearInterval(sendInterval);
+        };
+    }, []);
+
+    useEffect(() => {
         const inputElement = inputRef.current;
         const cursor = document.getElementById('cursor');
         const textDisplay = document.getElementById('text-display');
 
         function updateCursorPosition() {
-            const text = inputElement.value.replace(/ /g, '\u00A0');
-            textDisplay.textContent = text || '\u00A0';
-            const textWidth = textDisplay.offsetWidth;
-            cursor.style.left = `${textWidth + 4}px`;
+            if (inputElement && cursor && textDisplay) {
+                const text = inputElement.value.replace(/ /g, '\u00A0');
+                textDisplay.textContent = text || '\u00A0';
+                const textWidth = textDisplay.offsetWidth;
+                cursor.style.left = `${textWidth + 4}px`;
+            }
         }
 
-        inputElement.addEventListener('input', updateCursorPosition);
-        inputElement.addEventListener('focus', () => setIsFocused(true));
-        inputElement.addEventListener('blur', () => setIsFocused(false));
+        if (inputElement) {
+            inputElement.addEventListener('input', updateCursorPosition);
+            inputElement.addEventListener('focus', () => setIsFocused(true));
+            inputElement.addEventListener('blur', () => setIsFocused(false));
 
-        inputElement.focus();
-        updateCursorPosition();
-
-        // 컴포넌트가 마운트될 때 쿠키에서 사용자 이름을 읽습니다.
-        let storedUsername = Cookies.get('username');
-        if (!storedUsername) {
-            const randomIndex = Math.floor(Math.random() * pcCommunicationNicknames.length);
-            const storedUsername = pcCommunicationNicknames[randomIndex]
-            Cookies.set('username', storedUsername, { expires: 1 });
+            inputElement.focus();
+            updateCursorPosition();
         }
-        setUsername(storedUsername)
 
         return () => {
-            inputElement.removeEventListener('focus', () => {
-            });
-            inputElement.removeEventListener('blur', () => {
-            });
-            inputElement.removeEventListener('input', updateCursorPosition);
-            clearInterval(fetchInterval);
-            clearInterval(sendInterval);
+            if (inputElement) {
+                inputElement.removeEventListener('input', updateCursorPosition);
+                inputElement.removeEventListener('focus', () => setIsFocused(true));
+                inputElement.removeEventListener('blur', () => setIsFocused(false));
+            }
         };
     }, []);
 
@@ -91,10 +98,9 @@ export default function Home() {
         scrollToBottom();
     }, [messages]);
 
-
     const fetchMessages = async () => {
         try {
-            const response = await axios.get('/api/messages');
+            const response = await axios.get<Array<{ content: string; id: number }>>('/api/messages');
             if (!isSending.current && messageQueue.current.length < 1) {
                 setMessages(response.data);
             }
@@ -105,14 +111,17 @@ export default function Home() {
 
     const sendMessage = async () => {
         if (input.trim()) {
-            const newMessage = {content: username + " : " + input, id: Date.now()};
+            const newMessage = {content: `${username} : ${input}`, id: Date.now()};
             setMessages(prevMessages => [newMessage, ...prevMessages]);
             setInput('');
             messageQueue.current.push(newMessage);
-            const inputElement = inputRef.current;
-            inputElement.value = '';
+            if (inputRef.current) {
+                inputRef.current.value = '';
+            }
             const cursor = document.getElementById('cursor');
-            cursor.style.left = '4px';
+            if (cursor) {
+                cursor.style.left = '4px';
+            }
         }
     };
 
@@ -120,17 +129,19 @@ export default function Home() {
         if (!isSending.current && messageQueue.current.length > 0) {
             isSending.current = true;
             const message = messageQueue.current.shift();
-            try {
-                await axios.post('/api/messages', {content: message.content});
-            } catch (error) {
-                console.error('Failed to send message:', error);
-            } finally {
-                isSending.current = false;
+            if (message) {
+                try {
+                    await axios.post('/api/messages', {content: message.content});
+                } catch (error) {
+                    console.error('Failed to send message:', error);
+                } finally {
+                    isSending.current = false;
+                }
             }
         }
     };
 
-    const handleKeyPress = (e) => {
+    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             sendMessage();
         }
@@ -168,7 +179,7 @@ export default function Home() {
                     className="textbox"
                     type="text"
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="  대화를 시작하세요..."
                 />
