@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
 export default function Home() {
-    const [messages, setMessages] = useState<Array<{ content: string; id: number }>>([]);
+    const [messages, setMessages] = useState<Array<{ content: string }>>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const messageQueue = useRef<Array<{ content: string; id: number }>>([]);
+    const messageQueue = useRef<Array<{ content: string }>>([]);
     const isSending = useRef(false);
     const [isFocused, setIsFocused] = useState(false);
     const [username, setUsername] = useState('');
@@ -41,20 +41,20 @@ export default function Home() {
         "컴쟁이", "키보드", "마우스", "모뎀맨", "윈도우", "도스왕", "채팅왕", "게시판지기", "다운로더", "업로더",
         "정보통", "해커맨", "프로그래머", "그래픽맨", "사운드맨",
 
+        "잘못된만남", "늑대와함께", "서른즈음에", "이브의경고", "대답없는너", "해줄수없는일", "여름이야기", "투헤븐", "보이지않는", "너를위해", "천생연분", "할수있어", "누구보다널", "천일동안", "회상", "조조할인", "성인식", "영원한사랑", "해줄수없는일", "제발", "사랑했지만", "그녀와의이별", "잊지말아요", "아름다운이별", "나의사랑천상", "사랑의서약", "슬픈연가", "사랑보다깊은", "이밤의끝을잡고", "너를향한마음",
         "소방차 119", "영심이", "H.O.T.티", "젝키스틱", "핑클레인저", "S.E.S.TERS", "보아짱", "DSF", "YB밴드", "신화창조", "클릭-B", "NRG엔젤", "GOD주니어", "유앤미", "솔메이트", "강타닷컴", "문희준닷컴", "안젤리안", "박정민팬클럽", "터보엔진", "코요태 친구들", "UP", "이정현 팬클럽", "신승훈 팬클럽", "김건모 팬클럽", "이상우 팬클럽", "조성모 팬클럽", "김민종 팬클럽", "김범수 팬클럽", "신화팬클럽", "이효리 팬클럽",
     ];
 
     useEffect(() => {
         let storedUsername = Cookies.get('username');
-        if (!storedUsername) {
-            const randomIndex = Math.floor(Math.random() * pcCommunicationNicknames.length);
-            storedUsername = pcCommunicationNicknames[randomIndex];
-            Cookies.set('username', storedUsername, {expires: 1});
+        if (storedUsername) {
+            setUsername(storedUsername);
+        } else {
+            renameUser();
         }
-        setUsername(storedUsername);
 
         fetchMessages();
-        const fetchInterval = setInterval(fetchMessages, 3000);
+        const fetchInterval = setInterval(fetchMessages, 1000);
         const deleteInterval = setInterval(deleteMessage, 5000);
         const sendInterval = setInterval(processQueue, 1000);
 
@@ -101,9 +101,20 @@ export default function Home() {
         scrollToBottom();
     }, [messages]);
 
+    const renameUser = () => {
+        const randomIndex = Math.floor(Math.random() * pcCommunicationNicknames.length);
+        let storedUsername = pcCommunicationNicknames[randomIndex];
+        Cookies.set('username', storedUsername, {expires: 365});
+        setUsername(storedUsername)
+        return storedUsername;
+    }
+
     const fetchMessages = async () => {
         try {
-            const response = await axios.get<Array<{ content: string; id: number }>>('/api/messages?offset=0&limit=100');
+            const response = await axios.get<Array<{
+                content: string;
+                id: number
+            }>>('/api/messages?offset=0&limit=100');
             if (!isSending.current && messageQueue.current.length < 1) {
                 setMessages(response.data);
             }
@@ -114,9 +125,11 @@ export default function Home() {
 
     const deleteMessage = async () => {
         try {
-            const response = await axios.get<Array<{ content: string; id: number }>>('/api/messages?offset=3000&limit=1');
+            const response = await axios.get<Array<{
+                content: string;
+                id: number
+            }>>('/api/messages?offset=3000&limit=1');
             if (response.data.length > 0) {
-                // console.log(response.data[response.data.length - 1]);
                 await axios.delete(`/api/messages/${response.data[0].id}`);
             }
         } catch (error) {
@@ -126,7 +139,10 @@ export default function Home() {
 
     const sendMessage = async () => {
         if (input.trim()) {
-            const newMessage = {content: `${username} : ${input}`, id: Date.now()};
+            let newMessage = {content: `${username} : ${input}`};
+            if (input.trim() == "R" || input.trim() == "r") {
+                newMessage = {content: `== '${username}' 님이 대화명을 '${renameUser()}' 로 변경했습니다. ==`};
+            }
             setMessages(prevMessages => [newMessage, ...prevMessages]);
             setInput('');
             messageQueue.current.push(newMessage);
@@ -196,7 +212,7 @@ export default function Home() {
                     value={input}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="  대화를 시작하세요..."
+                    placeholder="  대화를 시작하세요. (R:닉네임변경)"
                 />
                 <span id="cursor" className={`cursor ${isFocused ? 'blink' : ''}`}></span>
                 <span id="text-display" className="text-display"></span>

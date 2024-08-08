@@ -68,6 +68,7 @@ h1 {
     overflow-y: auto;
     background-color: #000080;
     margin-bottom: 20px;
+    min-height: 70px;
 }
 
 .input-container {
