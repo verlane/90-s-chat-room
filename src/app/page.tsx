@@ -17,6 +17,8 @@ export default function Home() {
     const pcCommunicationNicknames = [
         "해피엔드", "여인2",
 
+        "엑스칼리버", "입니다", "짱구", "호빵맨", "손지창", "김민종", "도라에몽", "텔레토비", "뚜비",
+
         "난캡이야", "일루와", "수학싫어", "셈틀아비", "내리가즘",
         "freeman", "nuclear", "serious", "THIS", "FBI",
         "ILOVEYOU", "wetlips", "은하사랑", "승연사랑", "태지boys",
