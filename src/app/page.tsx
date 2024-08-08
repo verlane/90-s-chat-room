@@ -23,7 +23,7 @@ export default function Home() {
         "탁이준이", "나의사랑", "너의사랑", "혜선사랑", "종선사랑",
         "아침이슬", "한결같이", "늘푸른솔", "김용환", "서도일",
         "편집국장", "종이뱅기", "같이하자", "깨끗우리", "보라미",
-        "무장공비", "칼부림", "마즐레", "구슬두개", "큰고추알",
+        "무장공비", "칼부러짐", "마즐레", "구슬두개", "큰고추알",
 
         "김민수", "이준호", "박지훈", "최현우", "정재훈",
         "강태호", "조성민", "윤도현", "장우진", "임지호",
@@ -55,10 +55,12 @@ export default function Home() {
 
         fetchMessages();
         const fetchInterval = setInterval(fetchMessages, 3000);
+        const deleteInterval = setInterval(deleteMessage, 5000);
         const sendInterval = setInterval(processQueue, 1000);
 
         return () => {
             clearInterval(fetchInterval);
+            clearInterval(deleteInterval);
             clearInterval(sendInterval);
         };
     }, []);
@@ -101,9 +103,21 @@ export default function Home() {
 
     const fetchMessages = async () => {
         try {
-            const response = await axios.get<Array<{ content: string; id: number }>>('/api/messages');
+            const response = await axios.get<Array<{ content: string; id: number }>>('/api/messages?offset=0&limit=100');
             if (!isSending.current && messageQueue.current.length < 1) {
                 setMessages(response.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch messages:', error);
+        }
+    };
+
+    const deleteMessage = async () => {
+        try {
+            const response = await axios.get<Array<{ content: string; id: number }>>('/api/messages?offset=3000&limit=1');
+            if (response.data.length > 0) {
+                // console.log(response.data[response.data.length - 1]);
+                await axios.delete(`/api/messages/${response.data[0].id}`);
             }
         } catch (error) {
             console.error('Failed to fetch messages:', error);
