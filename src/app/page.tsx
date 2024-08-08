@@ -142,7 +142,7 @@ export default function Home() {
     const sendMessage = async () => {
         if (input.trim()) {
             let newMessage = {content: `${username} : ${input}`};
-            if (input.trim() == "R" || input.trim() == "r") {
+            if (input.trim() == "N" || input.trim() == "n") {
                 newMessage = {content: `== '${username}' 님이 대화명을 '${renameUser()}' 로 변경했습니다. ==`};
             }
             setMessages(prevMessages => [newMessage, ...prevMessages]);
@@ -214,7 +214,7 @@ export default function Home() {
                     value={input}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="  대화를 시작하세요. (R:닉네임변경)"
+                    placeholder="  대화를 시작하세요. (N:대화명변경)"
                 />
                 <span id="cursor" className={`cursor ${isFocused ? 'blink' : ''}`}></span>
                 <span id="text-display" className="text-display"></span>
