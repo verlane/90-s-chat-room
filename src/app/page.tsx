@@ -56,9 +56,10 @@ export default function Home() {
         }
 
         fetchMessages();
-        const fetchInterval = setInterval(fetchMessages, 1000);
-        const deleteInterval = setInterval(deleteMessage, 5000);
-        const sendInterval = setInterval(processQueue, 1000);
+
+        const fetchInterval = setInterval(fetchMessages, Number(process.env.NEXT_PUBLIC_FETCH_INTERVAL));
+        const deleteInterval = setInterval(deleteMessage, Number(process.env.NEXT_PUBLIC_DELETE_INTERVAL));
+        const sendInterval = setInterval(processQueue, Number(process.env.NEXT_PUBLIC_SEND_INTERVAL));
 
         return () => {
             clearInterval(fetchInterval);
