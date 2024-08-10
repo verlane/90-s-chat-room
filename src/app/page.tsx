@@ -72,12 +72,18 @@ export default function Home() {
         scrollToBottom();
     }, [messages]);
 
-    const renameUser = () => {
-        const randomIndex = Math.floor(Math.random() * pcCommunicationNicknames.length);
-        let storedUsername = pcCommunicationNicknames[randomIndex];
-        Cookies.set('username', storedUsername, {expires: 365});
-        setUsername(storedUsername)
-        return storedUsername;
+    const renameUser = (newUsername = '') => {
+        if (!newUsername) {
+            const randomIndex = Math.floor(Math.random() * pcCommunicationNicknames.length);
+            newUsername = pcCommunicationNicknames[randomIndex];
+        }
+
+        // newUsername이 최대 6자가 되도록 자르기
+        newUsername = newUsername.slice(0, 6);
+
+        Cookies.set('username', newUsername, {expires: 365});
+        setUsername(newUsername)
+        return newUsername;
     }
 
     const fetchMessages = async () => {
@@ -109,21 +115,26 @@ export default function Home() {
     };
 
     const sendMessage = async () => {
-        if (input.trim()) {
-            let newMessage = {content: `${username} : ${input}`};
-            if (input.trim() == "N" || input.trim() == "n") {
-                newMessage = {content: `== '${username}' 님이 대화명을 '${renameUser()}' 로 변경했습니다. ==`};
-            }
-            setMessages(prevMessages => [newMessage, ...prevMessages]);
-            setInput('');
-            messageQueue.current.push(newMessage);
-            if (inputRef.current) {
-                inputRef.current.value = '';
-            }
-            const cursor = document.getElementById('cursor');
-            if (cursor) {
-                cursor.style.left = '4px';
-            }
+        if (!input.trim()) return;
+
+        let newMessage = {content: `${username} : ${input}`};
+
+        const params = input.trim().split(' ');
+        if (params[0].toLowerCase() === 'n') {
+            const newUsername = (params.length > 1 && params[1]) ? params[1] : ''; // 두 번째 요소를 가져오고, 없으면 빈 문자열 사용
+            newMessage = {content: `== '${username}' 님이 대화명을 '${renameUser(newUsername)}' 로 변경했습니다. ==`};
+        }
+
+        setMessages(prevMessages => [newMessage, ...prevMessages]);
+        setInput('');
+        messageQueue.current.push(newMessage);
+        if (inputRef.current) {
+            inputRef.current.value = '';
+        }
+
+        const cursor = document.getElementById('cursor');
+        if (cursor) {
+            cursor.style.left = '4px';
         }
     };
 
@@ -182,8 +193,8 @@ export default function Home() {
                     type="text"
                     value={input}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="  대화를 시작하세요. (N:대화명변경)"
+                    onKeyUp={handleKeyPress}
+                    placeholder="  대화를 시작하세요 ('N' 또는 'N 대화명')"
                 />
                 <span id="cursor" className={`cursor ${isFocused ? 'blink' : ''}`}></span>
                 <span id="text-display" className="text-display"></span>
