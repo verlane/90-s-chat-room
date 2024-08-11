@@ -8,12 +8,14 @@ export default function Home() {
     const [messages, setMessages] = useState<Array<{ content: string }>>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const chatBoxRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const messageQueue = useRef<Array<{ content: string }>>([]);
     const isSending = useRef(false);
     const [isFocused, setIsFocused] = useState(false);
     const [username, setUsername] = useState('');
     const pcCommunicationNicknames = process.env.NEXT_PUBLIC_PC_COMMUNICATION_NICKNAMES!!.split(",");
+    const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
 
     useEffect(() => {
         let storedUsername = Cookies.get('username');
@@ -69,8 +71,22 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+        if (isScrolledToBottom) {
+            scrollToBottom();
+        }
+    }, [messages, isScrolledToBottom]);
+
+    useEffect(() => {
+        const chatBox = chatBoxRef.current;
+        if (chatBox) {
+            const handleScroll = () => {
+                const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop <= chatBox.clientHeight + 1;
+                setIsScrolledToBottom(isAtBottom);
+            };
+            chatBox.addEventListener('scroll', handleScroll);
+            return () => chatBox.removeEventListener('scroll', handleScroll);
+        }
+    }, []);
 
     const renameUser = (newUsername = '') => {
         if (!newUsername) {
@@ -78,7 +94,6 @@ export default function Home() {
             newUsername = pcCommunicationNicknames[randomIndex];
         }
 
-        // newUsername이 최대 6자가 되도록 자르기
         newUsername = newUsername.slice(0, 6);
 
         Cookies.set('username', newUsername, {expires: 365});
@@ -121,7 +136,7 @@ export default function Home() {
 
         const params = input.trim().split(' ');
         if (params[0].toLowerCase() === 'n') {
-            const newUsername = (params.length > 1 && params[1]) ? params[1] : ''; // 두 번째 요소를 가져오고, 없으면 빈 문자열 사용
+            const newUsername = (params.length > 1 && params[1]) ? params[1] : '';
             newMessage = {content: `== '${username}' 님이 대화명을 '${renameUser(newUsername)}' 로 변경했습니다. ==`};
         }
 
@@ -136,6 +151,8 @@ export default function Home() {
         if (cursor) {
             cursor.style.left = '4px';
         }
+
+        setIsScrolledToBottom(true);
     };
 
     const processQueue = async () => {
@@ -175,7 +192,7 @@ export default function Home() {
                 <li>5. 자료실</li>
                 <li></li>
             </ul>
-            <div className="chat-box">
+            <div className="chat-box" ref={chatBoxRef}>
                 <p>여기에 대화 내용이 표시됩니다.</p>
                 <p>대화 내용이 길어지면 스크롤됩니다.</p>
                 {messages.slice().reverse().map((message, index) => (
