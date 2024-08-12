@@ -16,6 +16,7 @@ export default function Home() {
     const [username, setUsername] = useState('');
     const pcCommunicationNicknames = process.env.NEXT_PUBLIC_PC_COMMUNICATION_NICKNAMES!!.split(",");
     const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+    const [bgColor, setBgColor] = useState('#010084');  // State for background color
 
     useEffect(() => {
         let storedUsername = Cookies.get('username');
@@ -61,6 +62,12 @@ export default function Home() {
             updateCursorPosition();
         }
 
+        let storedBgColor = Cookies.get('bgColor');
+        if (storedBgColor) {
+            setBgColor(storedBgColor);
+            document.body.style.backgroundColor = storedBgColor;  // body의 배경색 초기 설정
+        }
+
         return () => {
             if (inputElement) {
                 inputElement.removeEventListener('input', updateCursorPosition);
@@ -87,6 +94,13 @@ export default function Home() {
             return () => chatBox.removeEventListener('scroll', handleScroll);
         }
     }, []);
+
+    const handleBgColorChange = (color: string) => {
+        setBgColor(color);
+        Cookies.set('bgColor', color, { expires: 365 });
+        document.body.style.backgroundColor = color;  // body의 배경색 변경
+    };
+
 
     const renameUser = (newUsername = '') => {
         if (!newUsername) {
@@ -182,15 +196,19 @@ export default function Home() {
     };
 
     return (
-        <div className="container">
+        <div className="container" style={{backgroundColor: bgColor}}>
             <div className="welcome">나우누리에 오신 것을 환영합니다</div>
+            <div className="color-menu">
+                <button onClick={() => handleBgColorChange('#010084')} style={{backgroundColor: '#010084'}}></button>
+                <button onClick={() => handleBgColorChange('#000000')} style={{backgroundColor: '#000000'}}></button>
+            </div>
             <ul className="menu">
                 <li>1. 공지사항</li>
                 <li>2. 자유게시판</li>
                 <li className="selected"><span>3. 대화실</span></li>
                 <li>4. 동호회 / 모임</li>
                 <li>5. 자료실</li>
-                <li></li>
+                <li><a href={"https://github.com/verlane/90-s-chat-room"} target={"_blank"}>6. GitHub</a></li>
             </ul>
             <div className="chat-box" ref={chatBoxRef}>
                 <p>여기에 대화 내용이 표시됩니다.</p>
