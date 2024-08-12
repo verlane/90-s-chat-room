@@ -7,6 +7,8 @@ This project is a nostalgic recreation of a 1990s PC communication chat room. It
 
 https://90-s-chat-room.vercel.app
 
+<img src="https://github.com/user-attachments/assets/766c1a94-5b95-4189-a0f2-d1b2581cb8c8" alt="Demo" width="406"/>
+
 ## Features
 
 - **Real-Time Messaging**: Users can send and receive messages in real-time, mimicking the experience of a 90s chat room.
