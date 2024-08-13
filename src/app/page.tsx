@@ -28,12 +28,11 @@ export default function Home() {
         }
 
         fetchMessages().then(() => {
+            if (!isJoining.current) {
+                isJoining.current = true
+                messageQueue.current.push({content: `< '${storedUsername}' 님이 대화실에 입장했습니다. >`});
+            }
         });
-
-        if (!isJoining.current) {
-            isJoining.current = true
-            messageQueue.current.push({content: `< '${storedUsername}' 님이 대화실에 입장했습니다. >`});
-        }
 
         const fetchInterval = setInterval(fetchMessages, Number(process.env.NEXT_PUBLIC_FETCH_INTERVAL));
         const deleteInterval = setInterval(deleteMessage, Number(process.env.NEXT_PUBLIC_DELETE_INTERVAL));
