@@ -43,12 +43,16 @@ https://90-s-chat-room.vercel.app
    Create a `.env.local` file at the root of your project with the following contents:
 
    ```plaintext
+   MICROCMS_SERVICE_DOMAIN=hoge
+   MICROCMS_API_KEY=hogehoge
    NEXT_PUBLIC_PC_COMMUNICATION_NICKNAMES=nickname1,nickname2,nickname3
    NEXT_PUBLIC_FETCH_INTERVAL=3000
    NEXT_PUBLIC_DELETE_INTERVAL=60000
    NEXT_PUBLIC_SEND_INTERVAL=1000
    ```
 
+    - `MICROCMS_SERVICE_DOMAIN`: MicroCMS Domain.
+    - `MICROCMS_API_KEY`: MicroCMS API Key.
     - `NEXT_PUBLIC_PC_COMMUNICATION_NICKNAMES`: A comma-separated list of possible nicknames.
     - `NEXT_PUBLIC_FETCH_INTERVAL`: Interval in milliseconds to fetch new messages.
     - `NEXT_PUBLIC_DELETE_INTERVAL`: Interval in milliseconds to delete old messages.

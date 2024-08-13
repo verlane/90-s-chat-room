@@ -12,6 +12,7 @@ export default function Home() {
     const inputRef = useRef<HTMLInputElement>(null);
     const messageQueue = useRef<Array<{ content: string }>>([]);
     const isSending = useRef(false);
+    const isJoining = useRef(false);
     const [isFocused, setIsFocused] = useState(false);
     const [username, setUsername] = useState('');
     const pcCommunicationNicknames = process.env.NEXT_PUBLIC_PC_COMMUNICATION_NICKNAMES!!.split(",");
@@ -26,7 +27,13 @@ export default function Home() {
             renameUser();
         }
 
-        fetchMessages();
+        fetchMessages().then(() => {
+        });
+
+        if (!isJoining.current) {
+            isJoining.current = true
+            messageQueue.current.push({content: `< '${storedUsername}' 님이 대화실에 입장했습니다. >`});
+        }
 
         const fetchInterval = setInterval(fetchMessages, Number(process.env.NEXT_PUBLIC_FETCH_INTERVAL));
         const deleteInterval = setInterval(deleteMessage, Number(process.env.NEXT_PUBLIC_DELETE_INTERVAL));
@@ -97,7 +104,7 @@ export default function Home() {
 
     const handleBgColorChange = (color: string) => {
         setBgColor(color);
-        Cookies.set('bgColor', color, { expires: 365 });
+        Cookies.set('bgColor', color, {expires: 365});
         document.body.style.backgroundColor = color;  // body의 배경색 변경
     };
 
@@ -151,7 +158,7 @@ export default function Home() {
         const params = input.trim().split(' ');
         if (params[0].toLowerCase() === 'n') {
             const newUsername = (params.length > 1 && params[1]) ? params[1] : '';
-            newMessage = {content: `== '${username}' 님이 대화명을 '${renameUser(newUsername)}' 로 변경했습니다. ==`};
+            newMessage = {content: `< '${username}' 님이 대화명을 '${renameUser(newUsername)}' 로 변경했습니다. >`};
         }
 
         setMessages(prevMessages => [newMessage, ...prevMessages]);
