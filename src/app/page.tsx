@@ -24,7 +24,7 @@ export default function Home() {
         if (storedUsername) {
             setUsername(storedUsername);
         } else {
-            renameUser();
+            storedUsername = renameUser();
         }
 
         fetchMessages().then(() => {
