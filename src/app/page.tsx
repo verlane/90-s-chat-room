@@ -5,7 +5,6 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import {
     formatMessageTimestamp,
-    isSystemLog,
     shouldDisplayMessage,
 } from './message-utils';
 import type {Message} from './message-utils';
@@ -245,11 +244,9 @@ export default function Home() {
                     .filter(message => shouldDisplayMessage(message, now))
                     .map((message, index) => (
                         <p key={message.id ?? `${message.createdAt}-${index}`} className="mb-2">
-                            {!isSystemLog(message.content) && (
-                                <time className="message-timestamp" dateTime={message.createdAt}>
-                                    {formatMessageTimestamp(message.createdAt)}
-                                </time>
-                            )}
+                            <time className="message-timestamp" dateTime={message.createdAt}>
+                                {formatMessageTimestamp(message.createdAt)}
+                            </time>
                             {message.content}
                         </p>
                     ))}
