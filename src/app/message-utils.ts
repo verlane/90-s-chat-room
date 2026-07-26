@@ -1,7 +1,7 @@
 export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-const SYSTEM_LOG_PATTERN =
-    /^< '[\s\S]+' 님이 (?:대화실에 입장했습니다\.|대화명을 '[\s\S]+' 로 변경했습니다\.) >$/;
+const JOIN_LOG_PATTERN = /^< '[\s\S]+' 님이 대화실에 입장했습니다\. >$/;
+const RENAME_LOG_PATTERN = /^< '[\s\S]+' 님이 대화명을 '[\s\S]+' 로 변경했습니다\. >$/;
 
 export interface Message {
     content: string;
@@ -24,8 +24,16 @@ export function mergeIncomingMessages(current: Message[], incoming: Message[]): 
     return [...newMessages, ...current];
 }
 
+export function isJoinLog(content: string): boolean {
+    return JOIN_LOG_PATTERN.test(content.trim());
+}
+
+export function isRenameLog(content: string): boolean {
+    return RENAME_LOG_PATTERN.test(content.trim());
+}
+
 export function isSystemLog(content: string): boolean {
-    return SYSTEM_LOG_PATTERN.test(content.trim());
+    return isJoinLog(content) || isRenameLog(content);
 }
 
 export function shouldDisplayMessage(message: Message, now: Date): boolean {

@@ -23,7 +23,7 @@ describe('deleteOldSystemLogs', () => {
         vi.clearAllMocks();
     });
 
-    it('deletes only system logs returned before the 24-hour cutoff', async () => {
+    it('deletes only join logs before the 24-hour cutoff, keeping rename logs', async () => {
         vi.useFakeTimers();
         vi.setSystemTime(NOW);
         client.get.mockResolvedValue({
@@ -57,10 +57,9 @@ describe('deleteOldSystemLogs', () => {
                 filters: `createdAt[less_than]${cutoff}`,
             },
         });
-        expect(client.delete).toHaveBeenCalledTimes(2);
-        expect(client.delete).toHaveBeenNthCalledWith(1, '/messages/entry-log');
-        expect(client.delete).toHaveBeenNthCalledWith(2, '/messages/rename-log');
-        expect(deletedCount).toBe(2);
+        expect(client.delete).toHaveBeenCalledTimes(1);
+        expect(client.delete).toHaveBeenCalledWith('/messages/entry-log');
+        expect(deletedCount).toBe(1);
     });
 });
 

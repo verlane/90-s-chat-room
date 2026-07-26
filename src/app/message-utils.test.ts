@@ -2,6 +2,8 @@ import {describe, expect, it} from 'vitest';
 
 import {
     formatMessageTimestamp,
+    isJoinLog,
+    isRenameLog,
     isSystemLog,
     mergeIncomingMessages,
     ONE_DAY_MS,
@@ -43,6 +45,23 @@ describe('isSystemLog', () => {
         "< 'O'Brien' 님이 대화명을 'D'Angelo' 로 변경했습니다. >",
     ])('recognizes special characters in nicknames: %s', content => {
         expect(isSystemLog(content)).toBe(true);
+    });
+});
+
+describe('isJoinLog / isRenameLog', () => {
+    it('recognizes a join log as a join log, not a rename log', () => {
+        expect(isJoinLog(SYSTEM_LOG)).toBe(true);
+        expect(isRenameLog(SYSTEM_LOG)).toBe(false);
+    });
+
+    it('recognizes a rename log as a rename log, not a join log', () => {
+        expect(isJoinLog(RENAME_LOG)).toBe(false);
+        expect(isRenameLog(RENAME_LOG)).toBe(true);
+    });
+
+    it('does not mistake a regular chat message for either', () => {
+        expect(isJoinLog('guest : 안녕하세요')).toBe(false);
+        expect(isRenameLog('guest : 안녕하세요')).toBe(false);
     });
 });
 
