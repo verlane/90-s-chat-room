@@ -99,6 +99,14 @@ h1 {
     min-height: 70px;
 }
 
+.message-timestamp {
+    color: #8A8AC2;
+    font-size: 0.75em;
+    font-weight: normal;
+    margin-right: 0.75rem;
+    white-space: nowrap;
+}
+
 .input-container {
     position: relative;
     border: 1px solid #FFFFFF;

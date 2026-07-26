@@ -3,14 +3,20 @@
 import React, {useEffect, useRef, useState} from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import {
+    formatMessageTimestamp,
+    isSystemLog,
+    shouldDisplayMessage,
+} from './message-utils';
+import type {Message} from './message-utils';
 
 export default function Home() {
-    const [messages, setMessages] = useState<Array<{ content: string }>>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const chatBoxRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const messageQueue = useRef<Array<{ content: string }>>([]);
+    const messageQueue = useRef<Message[]>([]);
     const isSending = useRef(false);
     const isJoining = useRef(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -29,8 +35,13 @@ export default function Home() {
 
         fetchMessages().then(() => {
             if (!isJoining.current) {
-                isJoining.current = true
-                messageQueue.current.push({content: `< '${storedUsername}' 님이 대화실에 입장했습니다. >`});
+                isJoining.current = true;
+                const joiningMessage: Message = {
+                    content: `< '${storedUsername}' 님이 대화실에 입장했습니다. >`,
+                    createdAt: new Date().toISOString(),
+                };
+                setMessages(prevMessages => [joiningMessage, ...prevMessages]);
+                messageQueue.current.push(joiningMessage);
             }
         });
 
@@ -123,10 +134,7 @@ export default function Home() {
 
     const fetchMessages = async () => {
         try {
-            const response = await axios.get<Array<{
-                content: string;
-                id: number
-            }>>('/api/messages?offset=0&limit=100');
+            const response = await axios.get<Message[]>('/api/messages?offset=0&limit=100');
             if (!isSending.current && messageQueue.current.length < 1) {
                 setMessages(response.data);
             }
@@ -137,27 +145,37 @@ export default function Home() {
 
     const deleteMessage = async () => {
         try {
-            const response = await axios.get<Array<{
-                content: string;
-                id: number
-            }>>('/api/messages?offset=3000&limit=1');
+            const response = await axios.get<Message[]>('/api/messages?offset=3000&limit=1');
             if (response.data.length > 0) {
                 await axios.delete(`/api/messages/${response.data[0].id}`);
             }
         } catch (error) {
             console.error('Failed to fetch messages:', error);
         }
+
+        try {
+            await axios.delete('/api/messages/cleanup-system-logs');
+        } catch (error) {
+            console.error('Failed to delete old system logs:', error);
+        }
     };
 
     const sendMessage = async () => {
         if (!input.trim()) return;
 
-        let newMessage = {content: `${username} : ${input}`};
+        const createdAt = new Date().toISOString();
+        let newMessage: Message = {
+            content: `${username} : ${input}`,
+            createdAt,
+        };
 
         const params = input.trim().split(' ');
         if (params[0].toLowerCase() === 'n') {
             const newUsername = (params.length > 1 && params[1]) ? params[1] : '';
-            newMessage = {content: `< '${username}' 님이 대화명을 '${renameUser(newUsername)}' 로 변경했습니다. >`};
+            newMessage = {
+                content: `< '${username}' 님이 대화명을 '${renameUser(newUsername)}' 로 변경했습니다. >`,
+                createdAt,
+            };
         }
 
         setMessages(prevMessages => [newMessage, ...prevMessages]);
@@ -201,6 +219,8 @@ export default function Home() {
         messagesEndRef.current?.scrollIntoView({behavior: 'smooth'});
     };
 
+    const now = new Date();
+
     return (
         <div className="container" style={{backgroundColor: bgColor}}>
             <div className="welcome">나우누리에 오신 것을 환영합니다</div>
@@ -219,11 +239,20 @@ export default function Home() {
             <div className="chat-box" ref={chatBoxRef}>
                 <p>여기에 대화 내용이 표시됩니다.</p>
                 <p>대화 내용이 길어지면 스크롤됩니다.</p>
-                {messages.slice().reverse().map((message, index) => (
-                    <p key={index} className="mb-2">
-                        {message.content}
-                    </p>
-                ))}
+                {messages
+                    .slice()
+                    .reverse()
+                    .filter(message => shouldDisplayMessage(message, now))
+                    .map((message, index) => (
+                        <p key={message.id ?? `${message.createdAt}-${index}`} className="mb-2">
+                            {!isSystemLog(message.content) && (
+                                <time className="message-timestamp" dateTime={message.createdAt}>
+                                    {formatMessageTimestamp(message.createdAt)}
+                                </time>
+                            )}
+                            {message.content}
+                        </p>
+                    ))}
                 <div ref={messagesEndRef}/>
             </div>
             <div className="input-container">
