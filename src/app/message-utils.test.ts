@@ -3,9 +3,11 @@ import {describe, expect, it} from 'vitest';
 import {
     formatMessageTimestamp,
     isSystemLog,
+    mergeIncomingMessages,
     ONE_DAY_MS,
     shouldDisplayMessage,
 } from './message-utils';
+import type {Message} from './message-utils';
 
 const NOW = new Date('2026-07-27T12:00:00.000Z');
 const SYSTEM_LOG = "< 'guest' 님이 대화실에 입장했습니다. >";
@@ -87,5 +89,58 @@ describe('formatMessageTimestamp', () => {
         const localDate = new Date(2026, 6, 27, 9, 15);
 
         expect(formatMessageTimestamp(localDate.toISOString())).toBe('07/27 09:15');
+    });
+});
+
+describe('mergeIncomingMessages', () => {
+    const current: Message[] = [
+        {id: 'current-2', content: 'current newest', createdAt: '2026-07-27T02:00:00.000Z'},
+        {id: 'current-1', content: 'current oldest', createdAt: '2026-07-27T01:00:00.000Z'},
+    ];
+
+    it('returns the current array unchanged when there are no incoming messages', () => {
+        expect(mergeIncomingMessages(current, [])).toBe(current);
+    });
+
+    it('reverses oldest-first incoming messages and prepends them to current messages', () => {
+        const incoming: Message[] = [
+            {id: 'incoming-1', content: 'incoming oldest', createdAt: '2026-07-27T03:00:00.000Z'},
+            {id: 'incoming-2', content: 'incoming newest', createdAt: '2026-07-27T04:00:00.000Z'},
+        ];
+
+        expect(mergeIncomingMessages(current, incoming)).toEqual([
+            incoming[1],
+            incoming[0],
+            ...current,
+        ]);
+    });
+
+    it('does not add an incoming message whose id already exists in current messages', () => {
+        const incoming: Message[] = [
+            {...current[0], content: 'same server message'},
+            {id: 'incoming-1', content: 'new server message', createdAt: '2026-07-27T03:00:00.000Z'},
+        ];
+
+        expect(mergeIncomingMessages(current, incoming)).toEqual([
+            incoming[1],
+            ...current,
+        ]);
+    });
+
+    it('keeps optimistic current messages without an id', () => {
+        const optimistic: Message = {
+            content: 'optimistic local message',
+            createdAt: '2026-07-27T02:30:00.000Z',
+        };
+        const currentWithOptimisticMessage = [optimistic, ...current];
+        const incoming: Message[] = [
+            {id: 'incoming-1', content: 'new server message', createdAt: '2026-07-27T03:00:00.000Z'},
+        ];
+
+        expect(mergeIncomingMessages(currentWithOptimisticMessage, incoming)).toEqual([
+            incoming[0],
+            optimistic,
+            ...current,
+        ]);
     });
 });

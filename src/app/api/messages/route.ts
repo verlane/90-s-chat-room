@@ -6,7 +6,14 @@ export async function GET(req: Request) {
         const url = new URL(req.url);
         const offset = url.searchParams.get('offset');
         const limit = url.searchParams.get('limit');
-        const messages = await getMessages(Number(offset), Number(limit));
+        const orders = url.searchParams.get('orders') ?? undefined;
+        const filters = url.searchParams.get('filters') ?? undefined;
+        const messages = await getMessages(
+            Number(offset),
+            Number(limit),
+            orders,
+            filters,
+        );
         return NextResponse.json(messages);
     } catch (error) {
         console.error('Failed to fetch messages:', error);

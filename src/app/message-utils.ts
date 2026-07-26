@@ -9,6 +9,21 @@ export interface Message {
     id?: string;
 }
 
+export function mergeIncomingMessages(current: Message[], incoming: Message[]): Message[] {
+    if (incoming.length === 0) {
+        return current;
+    }
+
+    const currentIds = new Set(
+        current.flatMap(message => message.id ? [message.id] : []),
+    );
+    const newMessages = incoming
+        .filter(message => !message.id || !currentIds.has(message.id))
+        .reverse();
+
+    return [...newMessages, ...current];
+}
+
 export function isSystemLog(content: string): boolean {
     return SYSTEM_LOG_PATTERN.test(content.trim());
 }

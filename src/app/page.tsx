@@ -5,6 +5,7 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import {
     formatMessageTimestamp,
+    mergeIncomingMessages,
     shouldDisplayMessage,
 } from './message-utils';
 import type {Message} from './message-utils';
@@ -18,6 +19,7 @@ export default function Home() {
     const messageQueue = useRef<Message[]>([]);
     const isSending = useRef(false);
     const isJoining = useRef(false);
+    const lastSeenCreatedAt = useRef<string | null>(null);
     const [isFocused, setIsFocused] = useState(false);
     const [username, setUsername] = useState('');
     const pcCommunicationNicknames = process.env.NEXT_PUBLIC_PC_COMMUNICATION_NICKNAMES!!.split(",");
@@ -52,6 +54,20 @@ export default function Home() {
             clearInterval(fetchInterval);
             clearInterval(deleteInterval);
             clearInterval(sendInterval);
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                void fetchMessages();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, []);
 
@@ -132,17 +148,43 @@ export default function Home() {
     }
 
     const fetchMessages = async () => {
+        if (document.hidden) return;
+
         try {
-            const response = await axios.get<Message[]>('/api/messages?offset=0&limit=100');
-            if (!isSending.current && messageQueue.current.length < 1) {
+            if (!lastSeenCreatedAt.current) {
+                const response = await axios.get<Message[]>('/api/messages?offset=0&limit=100');
                 setMessages(response.data);
+                lastSeenCreatedAt.current = response.data.reduce<string | null>(
+                    (latest, message) => !latest || message.createdAt > latest
+                        ? message.createdAt
+                        : latest,
+                    null,
+                );
+                return;
             }
+
+            const filters = `createdAt[greater_than]${lastSeenCreatedAt.current}`;
+            const response = await axios.get<Message[]>(
+                `/api/messages?offset=0&limit=100&orders=createdAt&filters=${encodeURIComponent(filters)}`,
+            );
+
+            if (response.data.length === 0) return;
+
+            setMessages(current => mergeIncomingMessages(current, response.data));
+            lastSeenCreatedAt.current = response.data.reduce(
+                (latest, message) => message.createdAt > latest
+                    ? message.createdAt
+                    : latest,
+                lastSeenCreatedAt.current,
+            );
         } catch (error) {
             console.error('Failed to fetch messages:', error);
         }
     };
 
     const deleteMessage = async () => {
+        if (document.hidden) return;
+
         try {
             const response = await axios.get<Message[]>('/api/messages?offset=3000&limit=1');
             if (response.data.length > 0) {
@@ -198,7 +240,15 @@ export default function Home() {
             const message = messageQueue.current.shift();
             if (message) {
                 try {
-                    await axios.post('/api/messages', {content: message.content});
+                    const response = await axios.post<{id: string}>(
+                        '/api/messages',
+                        {content: message.content},
+                    );
+                    setMessages(current => current.map(currentMessage =>
+                        currentMessage.createdAt === message.createdAt
+                            ? {...currentMessage, id: response.data.id}
+                            : currentMessage,
+                    ));
                 } catch (error) {
                     console.error('Failed to send message:', error);
                 } finally {
