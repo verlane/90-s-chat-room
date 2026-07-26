@@ -79,7 +79,8 @@ export default function Home() {
 
         function updateCursorPosition() {
             if (inputElement && cursor && textDisplay) {
-                const text = inputElement.value.replace(/ /g, '\u00A0');
+                const caretPosition = inputElement.selectionStart ?? inputElement.value.length;
+                const text = inputElement.value.slice(0, caretPosition).replace(/ /g, '\u00A0');
                 textDisplay.textContent = text || '\u00A0';
                 const textWidth = textDisplay.offsetWidth;
                 cursor.style.left = `${textWidth + 4}px`;
@@ -88,6 +89,8 @@ export default function Home() {
 
         if (inputElement) {
             inputElement.addEventListener('input', updateCursorPosition);
+            inputElement.addEventListener('keyup', updateCursorPosition);
+            inputElement.addEventListener('click', updateCursorPosition);
             inputElement.addEventListener('focus', () => setIsFocused(true));
             inputElement.addEventListener('blur', () => setIsFocused(false));
 
@@ -104,6 +107,8 @@ export default function Home() {
         return () => {
             if (inputElement) {
                 inputElement.removeEventListener('input', updateCursorPosition);
+                inputElement.removeEventListener('keyup', updateCursorPosition);
+                inputElement.removeEventListener('click', updateCursorPosition);
                 inputElement.removeEventListener('focus', () => setIsFocused(true));
                 inputElement.removeEventListener('blur', () => setIsFocused(false));
             }
@@ -273,7 +278,7 @@ export default function Home() {
 
     return (
         <div className="container" style={{backgroundColor: bgColor}}>
-            <div className="welcome">나우누리에 오신 것을 환영합니다</div>
+            <h1 className="welcome">나우누리에 오신 것을 환영합니다</h1>
             <div className="color-menu">
                 <button onClick={() => handleBgColorChange('#010084')} style={{backgroundColor: '#010084'}}></button>
                 <button onClick={() => handleBgColorChange('#000000')} style={{backgroundColor: '#000000'}}></button>
