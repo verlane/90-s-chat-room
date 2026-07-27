@@ -15,6 +15,9 @@ https://90-s-chat-room.vercel.app
 - **Nickname System**: Users can change their nickname by typing `N` or `N username` in the chat.
 - **Scrolling Chat History**: Chat messages automatically scroll when they overflow the chat box.
 - **Random Nickname Assignment**: When users first join, they are assigned a random nickname from a predefined list.
+- **Message Timestamps**: Each chat message shows a small timestamp of when it was sent.
+- **Stale System Log Cleanup**: Join/rename notifications older than 24 hours are hidden from the chat view. Old join notifications are also periodically deleted from the backend to conserve microCMS's free-tier content quota (rename notifications are kept).
+- **Bandwidth-Efficient Polling**: Polling pauses while the browser tab is in the background and resumes immediately when it becomes visible again. New messages are fetched incrementally instead of re-fetching the full history on every poll, keeping data transfer well within microCMS's free-tier limits.
 
 ## Technology Stack
 
@@ -22,6 +25,7 @@ https://90-s-chat-room.vercel.app
 - **Vercel**: The platform used for deployment.
 - **MicroCMS**: Used as the backend to store and retrieve chat messages.
 - **Polling**: Instead of using WebSockets, this project uses a polling mechanism to retrieve messages at regular intervals. This approach is chosen to keep the project free of charge, avoiding the cost implications of maintaining a persistent connection.
+- **Vitest**: Unit tests for message utilities and cleanup logic.
 
 ## Installation
 
@@ -66,6 +70,12 @@ https://90-s-chat-room.vercel.app
 
    Open [http://localhost:3000](http://localhost:3000) in your browser to see the application in action.
 
+5. Run the tests:
+
+   ```bash
+   yarn test
+   ```
+
 ## Deployment
 
 To deploy this project using Vercel, follow these steps:
@@ -78,7 +88,7 @@ To deploy this project using Vercel, follow these steps:
 ## Limitations
 
 - **Polling Mechanism**: This project uses polling instead of WebSockets to keep the operation cost-free. While this approach works, it may not be as efficient as WebSockets for real-time applications.
-- **Free Tier Limitations**: The application is designed to operate within the free tiers of Vercel and MicroCMS, which may introduce certain limitations on the number of requests and storage.
+- **Free Tier Limitations**: The application is designed to operate within the free tiers of Vercel and MicroCMS, which may introduce certain limitations on the number of requests and storage. Incremental polling, background-tab pausing, and periodic stale-log cleanup help reduce usage, but very active rooms may still approach microCMS's free-tier content and data transfer limits.
 
 ## License
 

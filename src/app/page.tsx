@@ -3,16 +3,24 @@
 import React, {useEffect, useRef, useState} from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import {
+    formatMessageTimestamp,
+    isSystemLog,
+    mergeIncomingMessages,
+    shouldDisplayMessage,
+} from './message-utils';
+import type {Message} from './message-utils';
 
 export default function Home() {
-    const [messages, setMessages] = useState<Array<{ content: string }>>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const chatBoxRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const messageQueue = useRef<Array<{ content: string }>>([]);
+    const messageQueue = useRef<Message[]>([]);
     const isSending = useRef(false);
     const isJoining = useRef(false);
+    const lastSeenCreatedAt = useRef<string | null>(null);
     const [isFocused, setIsFocused] = useState(false);
     const [username, setUsername] = useState('');
     const pcCommunicationNicknames = process.env.NEXT_PUBLIC_PC_COMMUNICATION_NICKNAMES!!.split(",");
@@ -29,8 +37,13 @@ export default function Home() {
 
         fetchMessages().then(() => {
             if (!isJoining.current) {
-                isJoining.current = true
-                messageQueue.current.push({content: `< '${storedUsername}' 님이 대화실에 입장했습니다. >`});
+                isJoining.current = true;
+                const joiningMessage: Message = {
+                    content: `< '${storedUsername}' 님이 대화실에 입장했습니다. >`,
+                    createdAt: new Date().toISOString(),
+                };
+                setMessages(prevMessages => [joiningMessage, ...prevMessages]);
+                messageQueue.current.push(joiningMessage);
             }
         });
 
@@ -46,13 +59,28 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                void fetchMessages();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
+    useEffect(() => {
         const inputElement = inputRef.current;
         const cursor = document.getElementById('cursor');
         const textDisplay = document.getElementById('text-display');
 
         function updateCursorPosition() {
             if (inputElement && cursor && textDisplay) {
-                const text = inputElement.value.replace(/ /g, '\u00A0');
+                const caretPosition = inputElement.selectionStart ?? inputElement.value.length;
+                const text = inputElement.value.slice(0, caretPosition).replace(/ /g, '\u00A0');
                 textDisplay.textContent = text || '\u00A0';
                 const textWidth = textDisplay.offsetWidth;
                 cursor.style.left = `${textWidth + 4}px`;
@@ -61,6 +89,8 @@ export default function Home() {
 
         if (inputElement) {
             inputElement.addEventListener('input', updateCursorPosition);
+            inputElement.addEventListener('keyup', updateCursorPosition);
+            inputElement.addEventListener('click', updateCursorPosition);
             inputElement.addEventListener('focus', () => setIsFocused(true));
             inputElement.addEventListener('blur', () => setIsFocused(false));
 
@@ -77,6 +107,8 @@ export default function Home() {
         return () => {
             if (inputElement) {
                 inputElement.removeEventListener('input', updateCursorPosition);
+                inputElement.removeEventListener('keyup', updateCursorPosition);
+                inputElement.removeEventListener('click', updateCursorPosition);
                 inputElement.removeEventListener('focus', () => setIsFocused(true));
                 inputElement.removeEventListener('blur', () => setIsFocused(false));
             }
@@ -122,42 +154,75 @@ export default function Home() {
     }
 
     const fetchMessages = async () => {
+        if (document.hidden) return;
+
         try {
-            const response = await axios.get<Array<{
-                content: string;
-                id: number
-            }>>('/api/messages?offset=0&limit=100');
-            if (!isSending.current && messageQueue.current.length < 1) {
+            if (!lastSeenCreatedAt.current) {
+                const response = await axios.get<Message[]>('/api/messages?offset=0&limit=100');
                 setMessages(response.data);
+                lastSeenCreatedAt.current = response.data.reduce<string | null>(
+                    (latest, message) => !latest || message.createdAt > latest
+                        ? message.createdAt
+                        : latest,
+                    null,
+                );
+                return;
             }
+
+            const filters = `createdAt[greater_than]${lastSeenCreatedAt.current}`;
+            const response = await axios.get<Message[]>(
+                `/api/messages?offset=0&limit=100&orders=createdAt&filters=${encodeURIComponent(filters)}`,
+            );
+
+            if (response.data.length === 0) return;
+
+            setMessages(current => mergeIncomingMessages(current, response.data));
+            lastSeenCreatedAt.current = response.data.reduce(
+                (latest, message) => message.createdAt > latest
+                    ? message.createdAt
+                    : latest,
+                lastSeenCreatedAt.current,
+            );
         } catch (error) {
             console.error('Failed to fetch messages:', error);
         }
     };
 
     const deleteMessage = async () => {
+        if (document.hidden) return;
+
         try {
-            const response = await axios.get<Array<{
-                content: string;
-                id: number
-            }>>('/api/messages?offset=3000&limit=1');
+            const response = await axios.get<Message[]>('/api/messages?offset=3000&limit=1');
             if (response.data.length > 0) {
                 await axios.delete(`/api/messages/${response.data[0].id}`);
             }
         } catch (error) {
             console.error('Failed to fetch messages:', error);
         }
+
+        try {
+            await axios.delete('/api/messages/cleanup-system-logs');
+        } catch (error) {
+            console.error('Failed to delete old system logs:', error);
+        }
     };
 
     const sendMessage = async () => {
         if (!input.trim()) return;
 
-        let newMessage = {content: `${username} : ${input}`};
+        const createdAt = new Date().toISOString();
+        let newMessage: Message = {
+            content: `${username} : ${input}`,
+            createdAt,
+        };
 
         const params = input.trim().split(' ');
         if (params[0].toLowerCase() === 'n') {
             const newUsername = (params.length > 1 && params[1]) ? params[1] : '';
-            newMessage = {content: `< '${username}' 님이 대화명을 '${renameUser(newUsername)}' 로 변경했습니다. >`};
+            newMessage = {
+                content: `< '${username}' 님이 대화명을 '${renameUser(newUsername)}' 로 변경했습니다. >`,
+                createdAt,
+            };
         }
 
         setMessages(prevMessages => [newMessage, ...prevMessages]);
@@ -181,7 +246,15 @@ export default function Home() {
             const message = messageQueue.current.shift();
             if (message) {
                 try {
-                    await axios.post('/api/messages', {content: message.content});
+                    const response = await axios.post<{id: string}>(
+                        '/api/messages',
+                        {content: message.content},
+                    );
+                    setMessages(current => current.map(currentMessage =>
+                        currentMessage.createdAt === message.createdAt
+                            ? {...currentMessage, id: response.data.id}
+                            : currentMessage,
+                    ));
                 } catch (error) {
                     console.error('Failed to send message:', error);
                 } finally {
@@ -201,9 +274,11 @@ export default function Home() {
         messagesEndRef.current?.scrollIntoView({behavior: 'smooth'});
     };
 
+    const now = new Date();
+
     return (
         <div className="container" style={{backgroundColor: bgColor}}>
-            <div className="welcome">나우누리에 오신 것을 환영합니다</div>
+            <h1 className="welcome">나우누리에 오신 것을 환영합니다</h1>
             <div className="color-menu">
                 <button onClick={() => handleBgColorChange('#010084')} style={{backgroundColor: '#010084'}}></button>
                 <button onClick={() => handleBgColorChange('#000000')} style={{backgroundColor: '#000000'}}></button>
@@ -219,11 +294,21 @@ export default function Home() {
             <div className="chat-box" ref={chatBoxRef}>
                 <p>여기에 대화 내용이 표시됩니다.</p>
                 <p>대화 내용이 길어지면 스크롤됩니다.</p>
-                {messages.slice().reverse().map((message, index) => (
-                    <p key={index} className="mb-2">
-                        {message.content}
-                    </p>
-                ))}
+                {messages
+                    .slice()
+                    .reverse()
+                    .filter(message => shouldDisplayMessage(message, now))
+                    .map((message, index) => (
+                        <p
+                            key={message.id ?? `${message.createdAt}-${index}`}
+                            className={`mb-2${isSystemLog(message.content) ? ' system-log' : ''}`}
+                        >
+                            <time className="message-timestamp" dateTime={message.createdAt}>
+                                {formatMessageTimestamp(message.createdAt)}
+                            </time>
+                            {message.content}
+                        </p>
+                    ))}
                 <div ref={messagesEndRef}/>
             </div>
             <div className="input-container">

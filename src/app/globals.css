@@ -31,6 +31,7 @@ a:active {
     font-size: 22px;
     text-align: center;
     color: #FFFFFF;
+    margin: 0;
 }
 
 .container {
@@ -97,6 +98,19 @@ h1 {
     /*background-color: #000080;*/
     margin-bottom: 20px;
     min-height: 70px;
+}
+
+.system-log {
+    color: #B8B8D8;
+    font-size: 0.85em;
+}
+
+.message-timestamp {
+    color: #8A8AC2;
+    font-size: 0.7rem;
+    font-weight: normal;
+    margin-right: 0.75rem;
+    white-space: nowrap;
 }
 
 .input-container {
